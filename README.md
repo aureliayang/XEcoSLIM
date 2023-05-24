@@ -1,6 +1,8 @@
 # *X*EcoSLIM  
 ## We build the deep learning model to further accelerate the GPU version EcoSLIM.  
-As the first step, we directly adopted (1) the fancy DNN model from fluid dynamics and (2) Neural ODE.  
+As the first step, we directly adopted  
+(1) the fancy DNN model from fluid dynamics   
+(2) Neural ODE.  
 Currently, we are training the DL model based on hillslope physical model and modifying the DL model to adapt water age simulations.  
 
 **Please stay tuned for the amazing results at AGU23!**  
