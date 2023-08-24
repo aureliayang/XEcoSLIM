@@ -5,7 +5,7 @@ As the first step, we directly adopted
 (2) Neural ODE  
 Currently, we are training the DL model based on hillslope physical model and modifying the DL model to adapt water age simulations.  
 
-**Please stay tuned for the amazing results at AGU23!**  
+![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/onestep.png)   
 
 **References:**  
 [1] Han M., Sane S., Johnson C. (2022). Exploratory lagrangian-based particle tracing using deep learning. Journal of Flow Visualization & Image Processing, 29(3).  
