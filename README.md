@@ -9,6 +9,6 @@ Currently, we are training the DL model based on hillslope physical model and mo
 [1] Han M., Sane S., Johnson C. (2022). Exploratory lagrangian-based particle tracing using deep learning. Journal of Flow Visualization & Image Processing, 29(3).  
 [2] Chen R. , Rubanova Y., Bettencourt J., Duvenaud K. (2018). Neural ordinary differential equations. In Advances in Neural Information Processing Systems, 31.  
 
-![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/onestep.png)  
+![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/one.png)  
 
 
