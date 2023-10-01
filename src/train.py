@@ -1,16 +1,16 @@
 # from __future__ import print_function
 import argparse
-import sys
-import os
+# import sys
+# import os
 import numpy as np
 import random
 import time
 import json
-import re
+# import re
 
 import torch as th
 import torch.nn as nn
-import torch.backends.cudnn as cudnn
+# import torch.backends.cudnn as cudnn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -39,8 +39,6 @@ if __name__=='__main__':
     parser.add_argument('--max_x', type=float, default=0., help='')
     parser.add_argument('--max_y', type=float, default=0., help='nsion')
     parser.add_argument('--max_z', type=float, default=0., help='')
-
-    # parser.add_argument('--grad_lambda', type=float, default=0, help='lambda term for gradient regularization - if 0, no regularization is performed, default=0')
 
     parser.add_argument('--n_layers', type=int, default=8, help='number of layers')
     parser.add_argument('--w0', default=30, help='scale for SIREN') # I don't think this is useful
@@ -77,6 +75,7 @@ if __name__=='__main__':
 
     opt = parser.parse_args()
     print(opt)
+
     device = 'cuda' if opt.cuda else 'cpu'
 
     if opt.adjoint:
@@ -155,17 +154,7 @@ if __name__=='__main__':
 
             # predicted volume
             net.zero_grad()
-            # predicted_vol = net(positions)
             predicted_vol = odeint(net, start_pos, time_series).to(device)
-
-            # predicted_vol = predicted_vol.squeeze(-1)
-
-            # if opt.grad_lambda > 0:
-            #     target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
-            #     ones = th.ones_like(predicted_vol)
-            #     vol_grad = th.autograd.grad(outputs=predicted_vol, inputs=positions, grad_outputs=ones, retain_graph=True, create_graph=True, allow_unused=False)[0]
-            #     grad_loss = criterion(vol_grad,target_grad)
-            #
 
             n_prior_volume_passes = int(n_seen/vol_res)
 
@@ -186,10 +175,7 @@ if __name__=='__main__':
                 tick = tock
             #
 
-            full_loss = vol_loss
-            # if opt.grad_lambda > 0:
-            #     full_loss += opt.grad_lambda*grad_loss
-            full_loss.backward()
+            vol_loss.backward()
             optimizer.step()
 
             all_losses.append(vol_loss.item())
