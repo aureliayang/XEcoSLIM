@@ -22,6 +22,8 @@ from data import VolumeDataset
 
 # from func_eval import trilinear_f_interpolation,finite_difference_trilinear_grad
 
+# after Lu et al. 2021 and Chen et al. 2018
+
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
@@ -124,31 +126,12 @@ if __name__=='__main__':
     random.seed(opt.manualSeed)
     th.manual_seed(opt.manualSeed)
 
-    def create_data_loading():
-        new_vol = volume
-        v_res = new_vol.shape[0]*new_vol.shape[1]*new_vol.shape[2]
-        dataset = VolumeDataset(new_vol,opt.oversample)
-        if opt.cuda:
-            global_min_bb = dataset.min_bb.cuda()
-            global_max_bb = dataset.max_bb.cuda()
-            v_res = dataset.vol_res_float.cuda()
-            # v = new_vol.cuda()
-        #
-        else:
-            global_min_bb = dataset.min_bb
-            global_max_bb = dataset.max_bb
-            v_res = dataset.vol_res_float
-            # v = new_vol
-        #
-        # return v,v_res,global_min_bb,global_max_bb,dataset
-        return v,v_res,global_min_bb,global_max_bb,dataset
-    #
-
     n_seen,n_iter = 0,0
     tick = time.time()
     first_tick = time.time()
 
-    v,v_res,global_min_bb,global_max_bb,dataset = create_data_loading()
+    new_vol = volume
+    dataset = VolumeDataset(new_vol,opt.min_x,opt.min_y,opt.min_z,opt.max_x,opt.max_y,opt.max_z,opt.oversample)
     data_loader = DataLoader(dataset, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.num_workers))
 
     while True:
@@ -164,10 +147,10 @@ if __name__=='__main__':
                 positions = positions.cuda()
             #
 
-            raw_positions = raw_positions.view(-1,3)
-            positions = positions.view(-1,3)
-            if opt.grad_lambda > 0 or bdx%100==0:
-                positions.requires_grad = True
+            # raw_positions = raw_positions.view(-1,3)
+            # positions = positions.view(-1,3)
+            # if opt.grad_lambda > 0 or bdx%100==0:
+            #     positions.requires_grad = True
 
             # --- in practice, since we only sample values at grid points, this is not really performing interpolation; but, the option is there...
             # field = trilinear_f_interpolation(raw_positions,v,global_min_bb,global_max_bb,v_res)
@@ -199,7 +182,7 @@ if __name__=='__main__':
 
                 tock = time.time()
                 print('loss[',(n_seen/vol_res),n_iter,']:',vol_loss.item(),'time:',(tock-tick))
-                print('grad loss',grad_loss.item(),'norms',th.norm(target_grad).item(),th.norm(vol_grad).item())
+                # print('grad loss',grad_loss.item(),'norms',th.norm(target_grad).item(),th.norm(vol_grad).item())
                 tick = tock
             #
 
@@ -231,8 +214,8 @@ if __name__=='__main__':
 
     last_tock = time.time()
 
-    if opt.vol_debug:
-        tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
+    # if opt.vol_debug:
+    #     tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
     th.save(net.state_dict(), opt.network)
 
     total_time = last_tock-first_tick
