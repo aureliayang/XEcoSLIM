@@ -1,4 +1,4 @@
-from __future__ import print_function
+# from __future__ import print_function
 import argparse
 import sys
 import os
@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from siren import FieldNet, compute_num_neurons
 
-from utils import tiled_net_out
+# from utils import tiled_net_out
 
 from data import VolumeDataset
 
@@ -28,9 +28,10 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
+    parser.add_argument('--time_steps', type=int, default=3, help='number of timestep including t=0')
 
     parser.add_argument('--d_in', type=int, default=3, help='spatial dimension')
-    parser.add_argument('--d_out', type=int, default=1, help='scalar field')
+    parser.add_argument('--d_out', type=int, default=3, help='scalar field')
 
     parser.add_argument('--min_x', type=float, default=0., help='nsion')
     parser.add_argument('--min_y', type=float, default=0., help='')
@@ -42,7 +43,7 @@ if __name__=='__main__':
     # parser.add_argument('--grad_lambda', type=float, default=0, help='lambda term for gradient regularization - if 0, no regularization is performed, default=0')
 
     parser.add_argument('--n_layers', type=int, default=8, help='number of layers')
-    parser.add_argument('--w0', default=30, help='scale for SIREN')
+    parser.add_argument('--w0', default=30, help='scale for SIREN') # I don't think this is useful
 
     parser.add_argument('--compression_ratio', type=float, default=50, help='compression ratio')
 
@@ -54,10 +55,10 @@ if __name__=='__main__':
     parser.add_argument('--n_passes', type=float, default=75, help='number of passes to make over the volume, default=50')
     parser.add_argument('--pass_decay', type=float, default=20, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
-    parser.add_argument('--gid', type=int, default=0, help='gpu device id')
+    # parser.add_argument('--gid', type=int, default=0, help='gpu device id')
 
     parser.add_argument('--network', default='thenet.pth', help='filename to write the network to, default=thenet.pth')
-    parser.add_argument('--config', default='thenet.json', help='configuration file containing network parameters, other stuff, default=thenet.json')
+    # parser.add_argument('--config', default='thenet.json', help='configuration file containing network parameters, other stuff, default=thenet.json')
 
     # booleans and their defaults
     parser.add_argument('--cuda', dest='cuda', action='store_true', help='enables cuda')
@@ -68,30 +69,33 @@ if __name__=='__main__':
     parser.add_argument('--not-residual', dest='is_residual', action='store_false', help='don\'t use residual connections')
     parser.set_defaults(is_residual=True)
 
-    parser.add_argument('--enable-vol-debug', dest='vol_debug', action='store_true', help='write out ground-truth, and predicted, volume at end of training')
-    parser.add_argument('--disable-vol-debug', dest='vol_debug', action='store_false', help='do not write out volumes')
-    parser.set_defaults(vol_debug=True)
+    # parser.add_argument('--enable-vol-debug', dest='vol_debug', action='store_true', help='write out ground-truth, and predicted, volume at end of training')
+    # parser.add_argument('--disable-vol-debug', dest='vol_debug', action='store_false', help='do not write out volumes')
+    # parser.set_defaults(vol_debug=True)
+
+    parser.add_argument('--adjoint', action='store_true')
 
     opt = parser.parse_args()
     print(opt)
     device = 'cuda' if opt.cuda else 'cpu'
 
-    # volume
-    # this is a 3D data volume
-    # 0 samples
-    # 1 x,y,z position
-    # 2 timeline
+    if opt.adjoint:
+        from torchdiffeq import odeint_adjoint as odeint
+    else:
+        from torchdiffeq import odeint
+
+    # this is a 3D data volume: 0 samples; 1 x,y,z position; 2 timeline
     np_volume = np.load(opt.volume).astype(np.float32)
     volume = th.from_numpy(np_volume)
-    # print('volume exts',th.min(volume),th.max(volume))
 
-    # vol_res = th.prod(th.tensor([val for val in volume.shape])).item()
+    time_series = th.linspace(0, opt.time_steps-1, opt.time_steps,dtype=volume.dtype)
+    raw_min = th.tensor([th.min(time_series)],dtype=volume.dtype)
+    raw_max = th.tensor([th.max(time_series)],dtype=volume.dtype)
+    time_series = 2.0*((time_series-raw_min)/(raw_max-raw_min)-0.5)
+    time_series = time_series.cuda()
+
     # number of samples or particle number
     vol_res = volume.shape[0]
-
-    # raw_min = th.tensor([th.min(volume)],dtype=volume.dtype)
-    # raw_max = th.tensor([th.max(volume)],dtype=volume.dtype)
-    # volume = 2.0*((volume-raw_min)/(raw_max-raw_min)-0.5)
 
     opt.neurons = compute_num_neurons(opt,int(vol_res/opt.compression_ratio))
     opt.layers = []
@@ -117,10 +121,7 @@ if __name__=='__main__':
     for layer in net.parameters():
         num_net_params += layer.numel()
     print('number of network parameters:',num_net_params,'volume resolution:',volume.shape)
-    # print('compression ratio:',th.prod(th.tensor([val for val in volume.shape])).item()/num_net_params)
     print('compression ratio:',volume.shape[0]/num_net_params)
-    # compression_ratio = th.prod(th.tensor([val for val in volume.shape])).item()/num_net_params
-    # vol_res = th.prod(th.tensor([val for val in volume.shape])).item()
 
     opt.manualSeed = random.randint(1, 10000)  # fix seed
     random.seed(opt.manualSeed)
@@ -143,22 +144,21 @@ if __name__=='__main__':
 
             raw_positions, positions = data
             if opt.cuda:
-                raw_positions = raw_positions.cuda()
+                # raw_positions = raw_positions.cuda()
                 positions = positions.cuda()
             #
 
-            # raw_positions = raw_positions.view(-1,3)
-            # positions = positions.view(-1,3)
-            # if opt.grad_lambda > 0 or bdx%100==0:
-            #     positions.requires_grad = True
-
-            # --- in practice, since we only sample values at grid points, this is not really performing interpolation; but, the option is there...
-            # field = trilinear_f_interpolation(raw_positions,v,global_min_bb,global_max_bb,v_res)
+            # raw_positions = raw_positions.view(-1,volume.shape[1],3)
+            positions = positions.view(-1,volume.shape[1],3)
+            positions = positions.permute(1,0,2)
+            start_pos = (positions[0,:,:]).squeeze(0)
 
             # predicted volume
             net.zero_grad()
-            predicted_vol = net(positions)
-            predicted_vol = predicted_vol.squeeze(-1)
+            # predicted_vol = net(positions)
+            predicted_vol = odeint(net, start_pos, time_series).to(device)
+
+            # predicted_vol = predicted_vol.squeeze(-1)
 
             # if opt.grad_lambda > 0:
             #     target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
@@ -169,8 +169,8 @@ if __name__=='__main__':
 
             n_prior_volume_passes = int(n_seen/vol_res)
 
-            vol_loss = criterion(predicted_vol,field)
-            n_seen += field.view(-1).shape[0]
+            vol_loss = criterion(predicted_vol,positions)
+            n_seen += positions.shape[0]
 
             if bdx%100==0:
                 # if opt.grad_lambda == 0:
@@ -219,21 +219,21 @@ if __name__=='__main__':
     th.save(net.state_dict(), opt.network)
 
     total_time = last_tock-first_tick
-    config = {}
-    config['grad_lambda'] = opt.grad_lambda
-    config['n_layers'] = opt.n_layers
-    config['layers'] = opt.layers
-    config['w0'] = opt.w0
-    config['compression_ratio'] = opt.compression_ratio
-    config['batchSize'] = opt.batchSize
-    config['oversample'] = opt.oversample
-    config['lr'] = opt.lr
-    config['n_passes'] = opt.n_passes
-    config['pass_decay'] = opt.pass_decay
-    config['lr_decay'] = opt.lr_decay
-    config['is_residual'] = opt.is_residual
-    config['is_cuda'] = opt.cuda
-    config['time'] = total_time
+    # config = {}
+    # config['grad_lambda'] = opt.grad_lambda
+    # config['n_layers'] = opt.n_layers
+    # config['layers'] = opt.layers
+    # config['w0'] = opt.w0
+    # config['compression_ratio'] = opt.compression_ratio
+    # config['batchSize'] = opt.batchSize
+    # config['oversample'] = opt.oversample
+    # config['lr'] = opt.lr
+    # config['n_passes'] = opt.n_passes
+    # config['pass_decay'] = opt.pass_decay
+    # config['lr_decay'] = opt.lr_decay
+    # config['is_residual'] = opt.is_residual
+    # config['is_cuda'] = opt.cuda
+    # config['time'] = total_time
 
-    json.dump(config, open(opt.config,'w'))
+    # json.dump(config, open(opt.config,'w'))
 #

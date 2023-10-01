@@ -19,10 +19,10 @@ class SineLayer(nn.Module):
     def init_weights(self):
         with th.no_grad():
             if self.is_first:
-                self.linear.weight.uniform_(-1 / self.in_features, 
-                                             1 / self.in_features)      
+                self.linear.weight.uniform_(-1 / self.in_features,
+                                             1 / self.in_features)
             else:
-                self.linear.weight.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0, 
+                self.linear.weight.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0,
                                              np.sqrt(6 / self.in_features) / self.omega_0)
             #
         #
@@ -50,9 +50,9 @@ class ResidualSineLayer(nn.Module):
 
     def init_weights(self):
         with th.no_grad():
-            self.linear_1.weight.uniform_(-np.sqrt(6 / self.features) / self.omega_0, 
+            self.linear_1.weight.uniform_(-np.sqrt(6 / self.features) / self.omega_0,
                                            np.sqrt(6 / self.features) / self.omega_0)
-            self.linear_2.weight.uniform_(-np.sqrt(6 / self.features) / self.omega_0, 
+            self.linear_2.weight.uniform_(-np.sqrt(6 / self.features) / self.omega_0,
                                            np.sqrt(6 / self.features) / self.omega_0)
         #
     #
@@ -145,7 +145,7 @@ class FieldNet(nn.Module):
         #
     #
 
-    def forward(self,input):
+    def forward(self,t,input):
         batch_size = input.shape[0]
         out = input
         for ndx,net_layer in enumerate(self.net_layers):
