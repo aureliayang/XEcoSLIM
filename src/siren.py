@@ -1,5 +1,6 @@
+# after Lu et al. 2021
 from __future__ import print_function
-import argparse
+# import argparse
 import torch as th
 import torch.nn as nn
 import numpy as np
@@ -37,6 +38,7 @@ class ResidualSineLayer(nn.Module):
     def __init__(self, features, bias=True, ave_first=False, ave_second=False, omega_0=30):
         super().__init__()
         self.omega_0 = omega_0
+        self.resweight = nn.Parameter(th.Tensor([0]), requires_grad=True)
 
         self.features = features
         self.linear_1 = nn.Linear(features, features, bias=bias)
@@ -60,7 +62,7 @@ class ResidualSineLayer(nn.Module):
     def forward(self, input):
         sine_1 = th.sin(self.omega_0 * self.linear_1(self.weight_1*input))
         sine_2 = th.sin(self.omega_0 * self.linear_2(sine_1))
-        return self.weight_2*(input+sine_2)
+        return self.weight_2*(input+self.resweight*sine_2)
     #
 #
 
