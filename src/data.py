@@ -1,10 +1,11 @@
-import numpy as np
+# import numpy as np
 import torch as th
 from torch.utils.data.dataset import Dataset
 
 class VolumeDataset(Dataset):
     def __init__(self,volume,min_x=0.,min_y=0.,min_z=0.,max_x=1.,max_y=1.,max_z=1.,oversample=16):
 
+        self.volume = volume
         self.n_voxels = volume.shape[0]
 
         self.min_bb = th.tensor([min_x,min_y,min_z],dtype=th.float)

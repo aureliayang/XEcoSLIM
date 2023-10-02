@@ -42,7 +42,7 @@ if __name__=='__main__':
 
     parser.add_argument('--compression_ratio', type=float, default=50, help='compression ratio')
 
-    parser.add_argument('--batchSize', type=int, default=1024, help='batch size')
+    parser.add_argument('--batchSize', type=int, default=1024, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--oversample', type=int, default=16, help='how much to sample within batch items')
     parser.add_argument('--num_workers', type=int, default=8)
 
@@ -73,7 +73,7 @@ if __name__=='__main__':
     else:
         from torchdiffeq import odeint
 
-    # this is a 3D data volume of positions: 0 samples; 1 x,y,z position; 2 timeline
+    # this is a 3D data volume of positions: 0 samples; 1 timeline; 2 x,y,z position
     np_volume = np.load(opt.volume).astype(np.float32)
     volume = th.from_numpy(np_volume) # to tensor
 
@@ -96,7 +96,7 @@ if __name__=='__main__':
     # network
     net = FieldNet(opt)
     net.to(device)
-    net.train()
+    net.train() # is this necessary for neural ODE?
     print(net)
 
     # optimization
@@ -109,7 +109,7 @@ if __name__=='__main__':
     for layer in net.parameters():
         num_net_params += layer.numel()
     print('number of network parameters:',num_net_params,'volume resolution:',volume.shape)
-    print('compression ratio:',volume.shape[0]/num_net_params)
+    print('compression ratio:',vol_res/num_net_params)
 
     opt.manualSeed = random.randint(1, 10000)  # fix seed
     random.seed(opt.manualSeed)
@@ -119,8 +119,7 @@ if __name__=='__main__':
     tick = time.time()
     first_tick = time.time()
 
-    new_vol = volume
-    dataset = VolumeDataset(new_vol,opt.min_x,opt.min_y,opt.min_z,opt.max_x,opt.max_y,opt.max_z,opt.oversample)
+    dataset = VolumeDataset(volume,opt.min_x,opt.min_y,opt.min_z,opt.max_x,opt.max_y,opt.max_z,opt.oversample)
     data_loader = DataLoader(dataset, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.num_workers))
 
     while True:
