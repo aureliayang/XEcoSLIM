@@ -82,8 +82,8 @@ if __name__=='__main__':
 
     # generate time series
     time_series = th.linspace(0,opt.time_steps-1,opt.time_steps,dtype=volume.dtype)
-    raw_min = th.tensor([th.min(time_series)],dtype=volume.dtype)
-    raw_max = th.tensor([th.max(time_series)],dtype=volume.dtype)
+    raw_min = th.tensor([th.min(time_series)],dtype=volume.dtype) #single value
+    raw_max = th.tensor([th.max(time_series)],dtype=volume.dtype) #single value
     time_series = 2.0*((time_series-raw_min)/(raw_max-raw_min)-0.5)
     time_series = time_series.to(device)
 
