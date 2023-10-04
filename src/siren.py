@@ -38,7 +38,7 @@ class ResidualSineLayer(nn.Module):
     def __init__(self, features, bias=True, ave_first=False, ave_second=False, omega_0=30):
         super().__init__()
         self.omega_0 = omega_0
-        self.resweight = nn.Parameter(th.Tensor([0]), requires_grad=True)
+        # self.resweight = nn.Parameter(th.Tensor([0]), requires_grad=True)
 
         self.features = features
         self.linear_1 = nn.Linear(features, features, bias=bias)
