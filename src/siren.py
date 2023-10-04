@@ -62,7 +62,8 @@ class ResidualSineLayer(nn.Module):
     def forward(self, input):
         sine_1 = th.sin(self.omega_0 * self.linear_1(self.weight_1*input))
         sine_2 = th.sin(self.omega_0 * self.linear_2(sine_1))
-        return self.weight_2*(input+self.resweight*sine_2)
+        # return self.weight_2*(input+self.resweight*sine_2)
+        return self.weight_2*(input+sine_2)
     #
 #
 

@@ -25,7 +25,7 @@ if __name__=='__main__':
     parser.add_argument('--method', type=str, default='euler')
 
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
-    parser.add_argument('--time_steps', type=int, default=3, help='number of timestep including t=0')
+    parser.add_argument('--time_steps', type=int, default=50, help='number of timestep including t=0')
 
     parser.add_argument('--d_in', type=int, default=3, help='spatial dimension')
     parser.add_argument('--d_out', type=int, default=3, help='scalar field')
@@ -33,22 +33,22 @@ if __name__=='__main__':
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')
     parser.add_argument('--min_y', type=float, default=0., help='start coordinate of y dimension')
     parser.add_argument('--min_z', type=float, default=0., help='start coordinate of z dimension')
-    parser.add_argument('--max_x', type=float, default=0., help='end coordinate of x dimension')
-    parser.add_argument('--max_y', type=float, default=0., help='end coordinate of y dimension')
-    parser.add_argument('--max_z', type=float, default=0., help='end coordinate of z dimension')
+    parser.add_argument('--max_x', type=float, default=2., help='end coordinate of x dimension')
+    parser.add_argument('--max_y', type=float, default=1., help='end coordinate of y dimension')
+    parser.add_argument('--max_z', type=float, default=1., help='end coordinate of z dimension')
 
-    parser.add_argument('--n_layers', type=int, default=8, help='number of layers')
+    parser.add_argument('--n_layers', type=int, default=6, help='number of layers')
     parser.add_argument('--w0', default=30, help='scale for SIREN') # I don't think this is useful
 
-    parser.add_argument('--compression_ratio', type=float, default=50, help='compression ratio')
+    parser.add_argument('--compression_ratio', type=float, default=1, help='compression ratio')
 
-    parser.add_argument('--batchSize', type=int, default=1024, help='batch size') #make sure your data can have more than 100 batches
+    parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--oversample', type=int, default=16, help='how much to sample within batch items')
     parser.add_argument('--num_workers', type=int, default=8)
 
-    parser.add_argument('--lr', type=float, default=5e-5, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=75, help='number of passes to make over the volume, default=50')
-    parser.add_argument('--pass_decay', type=float, default=20, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--lr', type=float, default=5e-4, help='learning rate, default=5e-5')
+    parser.add_argument('--n_passes', type=float, default=1000, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--pass_decay', type=float, default=100, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
     parser.add_argument('--gid', type=int, default=0, help='gpu device id')
 
@@ -67,15 +67,19 @@ if __name__=='__main__':
     print(opt)
 
     device = th.device('cuda:' + str(opt.gid) if th.cuda.is_available() else 'cpu')
+    print(device)
 
     if opt.adjoint:
         from torchdiffeq import odeint_adjoint as odeint
+        print('adjoint')
     else:
         from torchdiffeq import odeint
 
     # this is a 3D data volume of positions: 0 samples; 1 timeline; 2 x,y,z position
     np_volume = np.load(opt.volume).astype(np.float32)
     volume = th.from_numpy(np_volume) # to tensor
+    volume = volume.permute(1,0,2)
+    volume = volume[0:100,0:opt.time_steps,:]
 
     # number of samples or particle number
     vol_res = volume.shape[0]
@@ -88,7 +92,7 @@ if __name__=='__main__':
     time_series = time_series.to(device)
 
     #
-    opt.neurons = compute_num_neurons(opt,int(vol_res/opt.compression_ratio))
+    opt.neurons = compute_num_neurons(opt,int(vol_res*opt.time_steps/opt.compression_ratio))
     opt.layers = []
     for idx in range(opt.n_layers):
         opt.layers.append(opt.neurons)
@@ -109,7 +113,7 @@ if __name__=='__main__':
     for layer in net.parameters():
         num_net_params += layer.numel()
     print('number of network parameters:',num_net_params,'volume resolution:',volume.shape)
-    print('compression ratio:',vol_res/num_net_params)
+    print('compression ratio:',vol_res*opt.time_steps/num_net_params)
 
     opt.manualSeed = random.randint(1, 10000)  # fix seed
     random.seed(opt.manualSeed)
@@ -139,14 +143,14 @@ if __name__=='__main__':
 
             # predicted volume
             net.zero_grad()
-            predicted_vol = odeint(net, start_pos, time_series, opt.method).to(device)
+            predicted_vol = odeint(net, start_pos, time_series, method = opt.method).to(device)
 
             n_prior_volume_passes = int(n_seen/vol_res)
 
             vol_loss = criterion(predicted_vol,positions)
             n_seen += positions.shape[1]
 
-            if bdx%100==0:
+            if bdx%10==0:
                 tock = time.time()
                 print('loss[',(n_seen/vol_res),n_iter,']:',vol_loss.item(),'time:',(tock-tick))
                 tick = tock
@@ -159,6 +163,7 @@ if __name__=='__main__':
 
             n_current_volume_passes = int(n_seen/vol_res)
             if n_prior_volume_passes != n_current_volume_passes and (n_current_volume_passes+1)%opt.pass_decay==0:
+            # if n_iter%opt.pass_decay==0:
                 print('------ learning rate decay ------',n_current_volume_passes)
                 for param_group in optimizer.param_groups:
                     param_group['lr'] *= opt.lr_decay
