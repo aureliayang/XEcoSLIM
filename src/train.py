@@ -6,6 +6,7 @@ import numpy as np
 import random
 import time
 import json
+import os
 
 import torch as th
 import torch.nn as nn
@@ -13,6 +14,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from siren import FieldNet, compute_num_neurons
+import matplotlib.pyplot as plt
 
 # from utils import tiled_net_out
 
@@ -24,6 +26,8 @@ if __name__=='__main__':
 
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
     parser.add_argument('--time_steps', type=int, default=50, help='number of timestep including t=0')
+    parser.add_argument('--test_number', type=int, default=100, help='number of particles used for small test')
+    parser.add_argument('--plot_number', type=int, default=98, help='the number id of a particle for plotting')
 
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')
     parser.add_argument('--min_y', type=float, default=0., help='start coordinate of y dimension')
@@ -34,7 +38,7 @@ if __name__=='__main__':
 
     parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--lr', type=float, default=5e-4, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=1000, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--n_passes', type=float, default=500, help='number of passes to make over the volume, default=50')
     parser.add_argument('--pass_decay', type=float, default=100, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
 
@@ -45,6 +49,7 @@ if __name__=='__main__':
     parser.add_argument('--w0', default=30, help='scale for SIREN') # I don't think this is useful
     parser.add_argument('--compression_ratio', type=float, default=1, help='compression ratio')
     parser.add_argument('--oversample', type=int, default=16, help='how much to sample within batch items')
+    parser.add_argument('--testsample', type=int, default=1, help='how much to sample within batch items')
     parser.add_argument('--num_workers', type=int, default=8)
     parser.add_argument('--gid', type=int, default=0, help='gpu device id')
 
@@ -72,13 +77,19 @@ if __name__=='__main__':
     else:
         from torchdiffeq import odeint
 
+    fig = plt.figure(figsize=(12, 4), facecolor='white')
+    ax_traj = fig.add_subplot(131, frameon=False)
+    ax_phase = fig.add_subplot(132, frameon=False)
+    ax_vecfield = fig.add_subplot(133, frameon=False)
+    plt.show(block=False)
+
     # this is a 3D data volume of positions: 0 samples; 1 timeline; 2 x,y,z position
     np_volume = np.load(opt.volume).astype(np.float32)
     volume = th.from_numpy(np_volume) # to tensor
 
     #only for double gyer test
     volume = volume.permute(1,0,2)
-    volume = volume[0:100,0:opt.time_steps,:]
+    volume = volume[0:opt.test_number,0:opt.time_steps,:]
 
     # number of samples or particle number
     vol_res = volume.shape[0]
@@ -123,14 +134,20 @@ if __name__=='__main__':
     first_tick = time.time()
 
     dataset_train = VolumeDataset(volume,opt.min_x,opt.min_y,opt.min_z,opt.max_x,opt.max_y,opt.max_z,opt.oversample)
-    data_loader = DataLoader(dataset_train, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.num_workers))
-    dataset_test = VolumeDataset(volume,opt.min_x,opt.min_y,opt.min_z,opt.max_x,opt.max_y,opt.max_z,opt.oversample)
+    data_loader_train = DataLoader(dataset_train, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.num_workers))
+    dataset_test = VolumeDataset(volume,opt.min_x,opt.min_y,opt.min_z,opt.max_x,opt.max_y,opt.max_z,opt.testsample)
+    dataset_loader_test = DataLoader(dataset_test, batch_size=opt.test_number, shuffle=False)
+    for raw_positions, positions_test in dataset_loader_test:
+        positions_test = positions_test.to(opt.device)
+        positions_test = positions_test.view(-1,volume.shape[1],3)
+        positions_test = positions_test.permute(1,0,2)
+        start_pos_test = (positions_test[0,:,:]).squeeze(0)
 
     while True:
         all_losses = []
         epoch_tick = time.time()
 
-        for bdx, data in enumerate(data_loader):
+        for bdx, data in enumerate(data_loader_train):
             n_iter+=1
 
             raw_positions, positions = data
@@ -168,17 +185,38 @@ if __name__=='__main__':
 
                 for param_group in optimizer.param_groups:
                     param_group['lr'] *= opt.lr_decay
+                print('------ learning rate decay ------{:d} {:e}'.format(n_current_volume_passes, param_group['lr']))
 
+            if (n_current_volume_passes+1)%10==0:
                 with th.no_grad():
-                    raw_positions, positions = dataset_test[:]
-                    positions = positions.to(opt.device)
-                    positions = positions.view(-1,volume.shape[1],3)
-                    positions = positions.permute(1,0,2)
-                    start_pos = (positions[0,:,:]).squeeze(0)
-                    predicted_vol = odeint(net, start_pos, time_series, method = opt.method).to(opt.device)
-                    vol_loss = criterion(predicted_vol,positions)
-                print('------ learning rate decay ------',n_current_volume_passes, \
-                      'lr: {:e} | Total Loss: {:.6f}'.format(param_group['lr'], vol_loss.item()))
+                    predicted_vol = odeint(net, start_pos_test, time_series, method = opt.method).to(opt.device)
+                    # vol_loss = criterion(predicted_vol,positions_test)
+
+                ax_traj.cla()
+                ax_traj.set_title('Trajectories')
+                ax_traj.set_xlabel('t')
+                ax_traj.set_ylabel('x,y')
+                ax_traj.plot(time_series.cpu().numpy(), positions_test.cpu().numpy()[:, opt.plot_number, 0], \
+                             time_series.cpu().numpy(), positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
+                ax_traj.plot(time_series.cpu().numpy(), predicted_vol.cpu().numpy()[:, opt.plot_number, 0], '--', \
+                             time_series.cpu().numpy(), predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
+                ax_traj.set_xlim(time_series.cpu().min(), time_series.cpu().max())
+                # ax_traj.set_ylim(-1, 1)
+                # ax_traj.legend()
+
+                ax_phase.cla()
+                ax_phase.set_title('Phase Portrait')
+                ax_phase.set_xlabel('x')
+                ax_phase.set_ylabel('y')
+                ax_phase.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
+                ax_phase.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
+                # ax_phase.set_xlim(-1, 1)
+                # ax_phase.set_ylim(-1, 1)
+
+                fig.tight_layout()
+                plt.savefig('png/{:03d}'.format(n_current_volume_passes))
+                plt.draw()
+                plt.pause(0.001)
             #
 
             if (n_current_volume_passes+1)==opt.n_passes:
