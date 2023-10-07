@@ -25,8 +25,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
-    parser.add_argument('--time_steps', type=int, default=50, help='number of timestep including t=0')
-    parser.add_argument('--test_number', type=int, default=100, help='number of particles used for small test')
+    parser.add_argument('--time_steps', type=int, default=200, help='number of timestep including t=0')
+    parser.add_argument('--test_number', type=int, default=500, help='number of particles used for small test')
     parser.add_argument('--plot_number', type=int, default=98, help='the number id of a particle for plotting')
 
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')

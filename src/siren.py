@@ -157,6 +157,8 @@ class FieldNet(nn.Module):
 
     def forward(self,t,input):
         # batch_size = input.shape[0]
+        t = th.ones(input.shape[0]).type_as(input)*t
+        t = t.view(-1,1)
         out = self.space_layer(input)
         t   = self.time_layer(t)
         out = th.cat((out, t), axis=1)
