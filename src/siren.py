@@ -84,18 +84,24 @@ def compute_num_neurons(opt,target_size):
             layer_out = layers[ndx+1]
             og_layer_in = max(layer_in,layer_out)
 
-            if ndx==0 or ndx==(n_layers-1):
+            if ndx==0:
+                layer_out_time = int(layer_out/4)
+                n_params += ((1+1)*layer_out_time)
+                layer_out_space = layer_out - layer_out_time
+                n_params += ((layer_in+1)*layer_out_space)
+
+            if ndx==(n_layers-1):
                 n_params += ((layer_in+1)*layer_out)
             #
             else:
                 if opt.is_residual:
                     is_shortcut = layer_in != layer_out
-                    if is_shortcut:
+                    if is_shortcut: #currently may not be  used
                         n_params += (layer_in*layer_out)+layer_out
                     n_params += (layer_in*og_layer_in)+og_layer_in
                     n_params += (og_layer_in*layer_out)+layer_out
                 else:
-                    n_params += ((layer_in+1)*layer_out)
+                    n_params += ((layer_in+1)*layer_out) #currently may not be  used
                 #
             #
         #
@@ -129,15 +135,16 @@ class FieldNet(nn.Module):
             layer_in = self.layers[ndx]
             layer_out = self.layers[ndx+1]
             if ndx != self.n_layers-1:
-                if not self.is_residual:
-                    self.net_layers.append(SineLayer(layer_in,layer_out,bias=True,is_first=ndx==0))
-                    continue
-                #
-
                 if ndx==0:
-                    self.net_layers.append(SineLayer(layer_in,layer_out,bias=True,is_first=ndx==0))
+                    layer_out_time = int(layer_out/4)
+                    layer_out_space = layer_out - layer_out_time
+                    self.time_layer = SineLayer(1,layer_out_time,bias=True,is_first=ndx==0)
+                    self.space_layer = SineLayer(layer_in,layer_out_space,bias=True,is_first=ndx==0)
                 else:
-                    self.net_layers.append(ResidualSineLayer(layer_in,bias=True,ave_first=ndx>1,ave_second=ndx==(self.n_layers-2)))
+                    if not self.is_residual:
+                        self.net_layers.append(SineLayer(layer_in,layer_out,bias=True,is_first=ndx==0))
+                    else:
+                        self.net_layers.append(ResidualSineLayer(layer_in,bias=True,ave_first=ndx>1,ave_second=ndx==(self.n_layers-2)))
                 #
             else:
                 final_linear = nn.Linear(layer_in,layer_out)
@@ -149,8 +156,10 @@ class FieldNet(nn.Module):
     #
 
     def forward(self,t,input):
-        batch_size = input.shape[0]
-        out = input
+        # batch_size = input.shape[0]
+        out = self.space_layer(input)
+        t   = self.time_layer(t)
+        out = th.cat((out, t), axis=1)
         for ndx,net_layer in enumerate(self.net_layers):
             out = net_layer(out)
         #
