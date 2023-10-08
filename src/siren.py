@@ -138,13 +138,13 @@ class FieldNet(nn.Module):
                 if ndx==0:
                     layer_out_time = int(layer_out/4)
                     layer_out_space = layer_out - layer_out_time
-                    self.time_layer = SineLayer(1,layer_out_time,bias=True,is_first=ndx==0,omega_0=30)
-                    self.space_layer = SineLayer(layer_in,layer_out_space,bias=True,is_first=ndx==0)
+                    self.time_layer = SineLayer(1,layer_out_time,bias=True,is_first=ndx==0,omega_0=self.w0)
+                    self.space_layer = SineLayer(layer_in,layer_out_space,bias=True,is_first=ndx==0,omega_0=self.w0)
                 else:
                     if not self.is_residual:
-                        self.net_layers.append(SineLayer(layer_in,layer_out,bias=True,is_first=ndx==0))
+                        self.net_layers.append(SineLayer(layer_in,layer_out,bias=True,is_first=ndx==0,omega_0=self.w0))
                     else:
-                        self.net_layers.append(ResidualSineLayer(layer_in,bias=True,ave_first=ndx>1,ave_second=ndx==(self.n_layers-2)))
+                        self.net_layers.append(ResidualSineLayer(layer_in,bias=True,ave_first=ndx>1,ave_second=ndx==(self.n_layers-2),omega_0=self.w0))
                 #
             else:
                 final_linear = nn.Linear(layer_in,layer_out)

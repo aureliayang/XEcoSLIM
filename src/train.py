@@ -25,8 +25,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
-    parser.add_argument('--time_steps', type=int, default=100, help='number of timestep including t=0')
-    parser.add_argument('--test_number', type=int, default=5000, help='number of particles used for small test')
+    parser.add_argument('--time_steps', type=int, default=250, help='number of timestep including t=0')
+    parser.add_argument('--test_number', type=int, default=500, help='number of particles used for small test')
     parser.add_argument('--plot_number', type=int, default=98, help='the number id of a particle for plotting')
 
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')
@@ -38,9 +38,9 @@ if __name__=='__main__':
 
     parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--lr', type=float, default=5e-4, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=100, help='number of passes to make over the volume, default=50')
-    parser.add_argument('--pass_decay', type=float, default=5, help='frequency at which to decay learning rate, default=15')
-    parser.add_argument('--pass_plot', type=float, default=1, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--n_passes', type=float, default=500, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--pass_decay', type=float, default=50, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--pass_plot', type=float, default=10, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
 
     parser.add_argument('--d_in', type=int, default=3, help='spatial dimension')
@@ -90,7 +90,7 @@ if __name__=='__main__':
 
     #only for double gyer test
     volume = volume.permute(1,0,2)
-    volume = volume[0:opt.test_number,0+100:opt.time_steps+100,:]
+    volume = volume[0:opt.test_number,0:opt.time_steps,:]
 
     # number of samples or particle number
     vol_res = volume.shape[0]
