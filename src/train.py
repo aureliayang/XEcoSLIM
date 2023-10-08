@@ -25,8 +25,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
-    parser.add_argument('--time_steps', type=int, default=200, help='number of timestep including t=0')
-    parser.add_argument('--test_number', type=int, default=500, help='number of particles used for small test')
+    parser.add_argument('--time_steps', type=int, default=100, help='number of timestep including t=0')
+    parser.add_argument('--test_number', type=int, default=5000, help='number of particles used for small test')
     parser.add_argument('--plot_number', type=int, default=98, help='the number id of a particle for plotting')
 
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')
@@ -38,8 +38,9 @@ if __name__=='__main__':
 
     parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--lr', type=float, default=5e-4, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=500, help='number of passes to make over the volume, default=50')
-    parser.add_argument('--pass_decay', type=float, default=100, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--n_passes', type=float, default=100, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--pass_decay', type=float, default=5, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--pass_plot', type=float, default=1, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
 
     parser.add_argument('--d_in', type=int, default=3, help='spatial dimension')
@@ -89,7 +90,7 @@ if __name__=='__main__':
 
     #only for double gyer test
     volume = volume.permute(1,0,2)
-    volume = volume[0:opt.test_number,0:opt.time_steps,:]
+    volume = volume[0:opt.test_number,0+100:opt.time_steps+100,:]
 
     # number of samples or particle number
     vol_res = volume.shape[0]
@@ -187,13 +188,13 @@ if __name__=='__main__':
                     param_group['lr'] *= opt.lr_decay
                 print('------ learning rate decay ------{:d} {:e}'.format(n_current_volume_passes, param_group['lr']))
 
-            if (n_current_volume_passes+1)%10==0:
+            if (n_current_volume_passes+1)%opt.pass_plot==0:
                 with th.no_grad():
                     predicted_vol = odeint(net, start_pos_test, time_series, method = opt.method).to(opt.device)
                     # vol_loss = criterion(predicted_vol,positions_test)
 
                 ax_traj.cla()
-                ax_traj.set_title('Trajectories')
+                ax_traj.set_title('x,y coordinates')
                 ax_traj.set_xlabel('t')
                 ax_traj.set_ylabel('x,y')
                 ax_traj.plot(time_series.cpu().numpy(), positions_test.cpu().numpy()[:, opt.plot_number, 0], \
@@ -202,10 +203,10 @@ if __name__=='__main__':
                              time_series.cpu().numpy(), predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
                 ax_traj.set_xlim(time_series.cpu().min(), time_series.cpu().max())
                 # ax_traj.set_ylim(-1, 1)
-                # ax_traj.legend()
+                ax_traj.legend(['x truth','y truth','x prediction','y prediction'])
 
                 ax_phase.cla()
-                ax_phase.set_title('Phase Portrait')
+                ax_phase.set_title('Trajectories')
                 ax_phase.set_xlabel('x')
                 ax_phase.set_ylabel('y')
                 ax_phase.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')

@@ -138,7 +138,7 @@ class FieldNet(nn.Module):
                 if ndx==0:
                     layer_out_time = int(layer_out/4)
                     layer_out_space = layer_out - layer_out_time
-                    self.time_layer = SineLayer(1,layer_out_time,bias=True,is_first=ndx==0)
+                    self.time_layer = SineLayer(1,layer_out_time,bias=True,is_first=ndx==0,omega_0=30)
                     self.space_layer = SineLayer(layer_in,layer_out_space,bias=True,is_first=ndx==0)
                 else:
                     if not self.is_residual:
