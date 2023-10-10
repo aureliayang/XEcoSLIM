@@ -38,8 +38,8 @@ if __name__=='__main__':
 
     parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--lr', type=float, default=5e-4, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=500, help='number of passes to make over the volume, default=50')
-    parser.add_argument('--pass_decay', type=float, default=50, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--n_passes', type=float, default=1000, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--pass_decay', type=float, default=100, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--pass_plot', type=float, default=10, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
 

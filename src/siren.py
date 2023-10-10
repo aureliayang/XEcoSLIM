@@ -22,9 +22,13 @@ class SineLayer(nn.Module):
             if self.is_first:
                 self.linear.weight.uniform_(-1 / self.in_features,
                                              1 / self.in_features)
+                self.linear.bias.uniform_(-1 / self.in_features,
+                                           1 / self.in_features)
             else:
                 self.linear.weight.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0,
                                              np.sqrt(6 / self.in_features) / self.omega_0)
+                self.linear.bias.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0,
+                                           np.sqrt(6 / self.in_features) / self.omega_0)
             #
         #
     #
@@ -56,6 +60,10 @@ class ResidualSineLayer(nn.Module):
                                            np.sqrt(6 / self.features) / self.omega_0)
             self.linear_2.weight.uniform_(-np.sqrt(6 / self.features) / self.omega_0,
                                            np.sqrt(6 / self.features) / self.omega_0)
+            self.linear_1.bias.uniform_(-np.sqrt(6 / self.features) / self.omega_0,
+                                         np.sqrt(6 / self.features) / self.omega_0)
+            self.linear_2.bias.uniform_(-np.sqrt(6 / self.features) / self.omega_0,
+                                         np.sqrt(6 / self.features) / self.omega_0)
         #
     #
 
