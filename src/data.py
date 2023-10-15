@@ -27,7 +27,8 @@ class VolumeDataset(Dataset):
         random_positions = self.volume[th.randint(self.n_voxels,(self.oversample,))]
         normalized_positions = 2.0 * ( (random_positions - self.min_bb.unsqueeze(0).unsqueeze(0)) / \
                                       (self.max_bb-self.min_bb).unsqueeze(0).unsqueeze(0) ) - 1.0
-        normalized_positions = self.scales.unsqueeze(0).unsqueeze(0)*normalized_positions
+        # normalized_positions = self.scales.unsqueeze(0).unsqueeze(0)*normalized_positions
+        # normalized_positions = random_positions
         return random_positions, normalized_positions
     #
 #

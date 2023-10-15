@@ -25,28 +25,29 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
-    parser.add_argument('--time_steps', type=int, default=250, help='number of timestep including t=0')
-    parser.add_argument('--test_number', type=int, default=500, help='number of particles used for small test')
-    parser.add_argument('--plot_number', type=int, default=98, help='the number id of a particle for plotting')
+    parser.add_argument('--time_steps', type=int, default=365, help='number of timestep including t=0')
+    parser.add_argument('--test_number', type=int, default=1000, help='number of particles used for small test')
+    parser.add_argument('--augment', type=int, default=20, help='number of particles used for small test')
+    parser.add_argument('--plot_number', type=int, default=0, help='the number id of a particle for plotting')
 
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')
     parser.add_argument('--min_y', type=float, default=0., help='start coordinate of y dimension')
     parser.add_argument('--min_z', type=float, default=0., help='start coordinate of z dimension')
-    parser.add_argument('--max_x', type=float, default=2., help='end coordinate of x dimension')
+    parser.add_argument('--max_x', type=float, default=100., help='end coordinate of x dimension')
     parser.add_argument('--max_y', type=float, default=1., help='end coordinate of y dimension')
-    parser.add_argument('--max_z', type=float, default=1., help='end coordinate of z dimension')
+    parser.add_argument('--max_z', type=float, default=9.4, help='end coordinate of z dimension')
 
     parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
-    parser.add_argument('--lr', type=float, default=5e-4, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=1000, help='number of passes to make over the volume, default=50')
-    parser.add_argument('--pass_decay', type=float, default=100, help='frequency at which to decay learning rate, default=15')
-    parser.add_argument('--pass_plot', type=float, default=10, help='frequency at which to decay learning rate, default=15')
-    parser.add_argument('--lr_decay', type=float, default=.2, help='learning rate decay, default=.2')
+    parser.add_argument('--lr', type=float, default=1e-3, help='learning rate, default=5e-5')
+    parser.add_argument('--n_passes', type=float, default=2000, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--pass_decay', type=float, default=30, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--pass_plot', type=float, default=5, help='frequency at which to decay learning rate, default=15')
+    parser.add_argument('--lr_decay', type=float, default=.5, help='learning rate decay, default=.2')
 
     parser.add_argument('--d_in', type=int, default=3, help='spatial dimension')
     parser.add_argument('--d_out', type=int, default=3, help='scalar field')
 
-    parser.add_argument('--n_layers', type=int, default=6, help='number of layers')
+    parser.add_argument('--n_layers', type=int, default=2, help='number of layers')
     parser.add_argument('--w0', default=30, help='scale for SIREN') # I don't think this is useful
     parser.add_argument('--compression_ratio', type=float, default=1, help='compression ratio')
     parser.add_argument('--oversample', type=int, default=16, help='how much to sample within batch items')
@@ -103,7 +104,7 @@ if __name__=='__main__':
     time_series = time_series.to(opt.device)
 
     #
-    opt.neurons = compute_num_neurons(opt,int(vol_res*opt.time_steps/opt.compression_ratio))
+    opt.neurons = compute_num_neurons(opt,int(vol_res*opt.augment/opt.compression_ratio))
     opt.layers = []
     for idx in range(opt.n_layers):
         opt.layers.append(opt.neurons)
@@ -124,7 +125,7 @@ if __name__=='__main__':
     for layer in net.parameters():
         num_net_params += layer.numel()
     print('number of network parameters:',num_net_params,'volume resolution:',volume.shape)
-    print('compression ratio:',vol_res*opt.time_steps/num_net_params)
+    print('compression ratio:',vol_res*opt.augment/num_net_params)
 
     opt.manualSeed = random.randint(1, 10000)  # fix seed
     random.seed(opt.manualSeed)
@@ -160,7 +161,7 @@ if __name__=='__main__':
             start_pos = (positions[0,:,:]).squeeze(0)
 
             # predicted volume
-            net.zero_grad()
+            optimizer.zero_grad()
             predicted_vol = odeint(net, start_pos, time_series, method = opt.method).to(opt.device)
 
             n_prior_volume_passes = int(n_seen/vol_res)
@@ -194,25 +195,34 @@ if __name__=='__main__':
                     # vol_loss = criterion(predicted_vol,positions_test)
 
                 ax_traj.cla()
-                ax_traj.set_title('x,y coordinates')
+                ax_traj.set_title('x,z coordinates')
                 ax_traj.set_xlabel('t')
-                ax_traj.set_ylabel('x,y')
+                ax_traj.set_ylabel('x,z')
                 ax_traj.plot(time_series.cpu().numpy(), positions_test.cpu().numpy()[:, opt.plot_number, 0], \
-                             time_series.cpu().numpy(), positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
+                             time_series.cpu().numpy(), positions_test.cpu().numpy()[:, opt.plot_number, 2], 'g-')
                 ax_traj.plot(time_series.cpu().numpy(), predicted_vol.cpu().numpy()[:, opt.plot_number, 0], '--', \
-                             time_series.cpu().numpy(), predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
+                             time_series.cpu().numpy(), predicted_vol.cpu().numpy()[:, opt.plot_number, 2], 'b--')
                 ax_traj.set_xlim(time_series.cpu().min(), time_series.cpu().max())
                 # ax_traj.set_ylim(-1, 1)
-                ax_traj.legend(['x truth','y truth','x prediction','y prediction'])
+                ax_traj.legend(['x truth','z truth','x prediction','z prediction'])
 
                 ax_phase.cla()
                 ax_phase.set_title('Trajectories')
                 ax_phase.set_xlabel('x')
-                ax_phase.set_ylabel('y')
-                ax_phase.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
-                ax_phase.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
+                ax_phase.set_ylabel('z')
+                ax_phase.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 2], 'g-')
+                ax_phase.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 2], 'b--')
                 # ax_phase.set_xlim(-1, 1)
                 # ax_phase.set_ylim(-1, 1)
+                
+                ax_vecfield.cla()
+                ax_vecfield.set_title('Trajectories')
+                ax_vecfield.set_xlabel('x')
+                ax_vecfield.set_ylabel('y')
+                ax_vecfield.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
+                ax_vecfield.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
+                # ax_vecfield.set_xlim(-1, 1)
+                # ax_vecfield.set_ylim(-1, 1)
 
                 fig.tight_layout()
                 plt.savefig('png/{:03d}'.format(n_current_volume_passes))
