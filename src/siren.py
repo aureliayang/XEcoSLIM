@@ -93,7 +93,7 @@ def compute_num_neurons(opt,target_size):
             og_layer_in = max(layer_in,layer_out)
 
             if ndx==0:
-                layer_out_time = int(layer_out/4)
+                layer_out_time = int(layer_out/2)
                 n_params += ((1+1)*layer_out_time)
                 layer_out_space = layer_out - layer_out_time
                 n_params += ((layer_in+1)*layer_out_space)
@@ -145,7 +145,7 @@ class FieldNet(nn.Module):
             layer_out = self.layers[ndx+1]
             if ndx != self.n_layers-1:
                 if ndx==0:
-                    layer_out_time = int(layer_out/4)
+                    layer_out_time = int(layer_out/2)
                     layer_out_space = layer_out - layer_out_time
                     self.time_layer = SineLayer(1,layer_out_time,bias=True,is_first=ndx==0,omega_0=self.w1)
                     self.space_layer = SineLayer(layer_in,layer_out_space,bias=True,is_first=ndx==0,omega_0=self.w0)
