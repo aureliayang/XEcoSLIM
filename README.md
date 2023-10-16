@@ -11,6 +11,9 @@ Currently, we are training the DL model based on hillslope physical model and mo
 [3] Sahoo S., Lu Y., Berger M. (2022). Neural Flow Map Reconstruction. Computer Graphics Forum, 41.  
 [4] Lu Y., Jiang K., Levine J. A., Berger M. (2021). Compressive Neural Representations of Volumetric Scalar Fields. Computer Graphics Forum, 40.  
 
+**Han's method**
 ![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/one.png)
+**neuralODE**
+![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/neuralODE.png)
 
 
