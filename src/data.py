@@ -10,7 +10,7 @@ class VolumeDataset(Dataset):
 
         self.min_bb = th.tensor([min_x,min_y,min_z],dtype=th.float)
         self.max_bb = th.tensor([max_x,max_y,max_z],dtype=th.float)
-        
+
         self.diag = self.max_bb-self.min_bb
 
         self.max_dim = th.max(self.diag)
@@ -28,7 +28,6 @@ class VolumeDataset(Dataset):
         normalized_positions = 2.0 * ( (random_positions - self.min_bb.unsqueeze(0).unsqueeze(0)) / \
                                       (self.max_bb-self.min_bb).unsqueeze(0).unsqueeze(0) ) - 1.0
         # normalized_positions = self.scales.unsqueeze(0).unsqueeze(0)*normalized_positions
-        # normalized_positions = random_positions
         return random_positions, normalized_positions
     #
 #

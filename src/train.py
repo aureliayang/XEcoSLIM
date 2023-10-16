@@ -27,7 +27,7 @@ if __name__=='__main__':
     parser.add_argument('--volume', required=True, help='path to volumetric dataset')
     parser.add_argument('--time_steps', type=int, default=365, help='number of timestep including t=0')
     parser.add_argument('--test_number', type=int, default=1000, help='number of particles used for small test')
-    parser.add_argument('--augment', type=int, default=20, help='number of particles used for small test')
+    parser.add_argument('--augment', type=int, default=20, help='the fold to increase nn parameters')
     parser.add_argument('--plot_number', type=int, default=0, help='the number id of a particle for plotting')
 
     parser.add_argument('--min_x', type=float, default=0., help='start coordinate of x dimension')
@@ -39,16 +39,17 @@ if __name__=='__main__':
 
     parser.add_argument('--batchSize', type=int, default=5, help='batch size') #make sure your data can have more than 100 batches
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate, default=5e-5')
-    parser.add_argument('--n_passes', type=float, default=2000, help='number of passes to make over the volume, default=50')
+    parser.add_argument('--n_passes', type=float, default=500, help='number of passes to make over the volume, default=50')
     parser.add_argument('--pass_decay', type=float, default=30, help='frequency at which to decay learning rate, default=15')
     parser.add_argument('--pass_plot', type=float, default=5, help='frequency at which to decay learning rate, default=15')
-    parser.add_argument('--lr_decay', type=float, default=.5, help='learning rate decay, default=.2')
+    parser.add_argument('--lr_decay', type=float, default=.1, help='learning rate decay, default=.2')
 
     parser.add_argument('--d_in', type=int, default=3, help='spatial dimension')
     parser.add_argument('--d_out', type=int, default=3, help='scalar field')
 
     parser.add_argument('--n_layers', type=int, default=2, help='number of layers')
-    parser.add_argument('--w0', default=30, help='scale for SIREN') # I don't think this is useful
+    parser.add_argument('--w0', default=30, help='scale for SIREN, sapce')
+    parser.add_argument('--w1', default=50, help='scale for SIREN, time')
     parser.add_argument('--compression_ratio', type=float, default=1, help='compression ratio')
     parser.add_argument('--oversample', type=int, default=16, help='how much to sample within batch items')
     parser.add_argument('--testsample', type=int, default=1, help='how much to sample within batch items')
@@ -61,10 +62,6 @@ if __name__=='__main__':
     parser.add_argument('--is-residual', dest='is_residual', action='store_true', help='use residual connections')
     parser.add_argument('--not-residual', dest='is_residual', action='store_false', help='don\'t use residual connections')
     parser.set_defaults(is_residual=True)
-
-    # parser.add_argument('--enable-vol-debug', dest='vol_debug', action='store_true', help='write out ground-truth, and predicted, volume at end of training')
-    # parser.add_argument('--disable-vol-debug', dest='vol_debug', action='store_false', help='do not write out volumes')
-    # parser.set_defaults(vol_debug=True)
 
     parser.add_argument('--adjoint', action='store_true')
     parser.add_argument('--method', type=str, default='euler')
@@ -125,7 +122,7 @@ if __name__=='__main__':
     for layer in net.parameters():
         num_net_params += layer.numel()
     print('number of network parameters:',num_net_params,'volume resolution:',volume.shape)
-    print('compression ratio:',vol_res*opt.augment/num_net_params)
+    print('compression ratio:',vol_res*opt.time_steps/num_net_params)
 
     opt.manualSeed = random.randint(1, 10000)  # fix seed
     random.seed(opt.manualSeed)
@@ -207,22 +204,22 @@ if __name__=='__main__':
                 ax_traj.legend(['x truth','z truth','x prediction','z prediction'])
 
                 ax_phase.cla()
-                ax_phase.set_title('Trajectories')
+                ax_phase.set_title('Trajectories xz')
                 ax_phase.set_xlabel('x')
                 ax_phase.set_ylabel('z')
                 ax_phase.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 2], 'g-')
                 ax_phase.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 2], 'b--')
                 # ax_phase.set_xlim(-1, 1)
                 # ax_phase.set_ylim(-1, 1)
-                
-                ax_vecfield.cla()
-                ax_vecfield.set_title('Trajectories')
-                ax_vecfield.set_xlabel('x')
-                ax_vecfield.set_ylabel('y')
-                ax_vecfield.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
-                ax_vecfield.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
-                # ax_vecfield.set_xlim(-1, 1)
-                # ax_vecfield.set_ylim(-1, 1)
+
+                # ax_vecfield.cla()
+                # ax_vecfield.set_title('Trajectories xy')
+                # ax_vecfield.set_xlabel('x')
+                # ax_vecfield.set_ylabel('y')
+                # ax_vecfield.plot(positions_test.cpu().numpy()[:, opt.plot_number, 0], positions_test.cpu().numpy()[:, opt.plot_number, 1], 'g-')
+                # ax_vecfield.plot(predicted_vol.cpu().numpy()[:, opt.plot_number, 0], predicted_vol.cpu().numpy()[:, opt.plot_number, 1], 'b--')
+                # # ax_vecfield.set_xlim(-1, 1)
+                # # ax_vecfield.set_ylim(-1, 1)
 
                 fig.tight_layout()
                 plt.savefig('png/{:03d}'.format(n_current_volume_passes))
@@ -242,8 +239,6 @@ if __name__=='__main__':
 
     last_tock = time.time()
 
-    # if opt.vol_debug:
-    #     tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
     th.save(net.state_dict(), opt.network)
 
     total_time = last_tock-first_tick
