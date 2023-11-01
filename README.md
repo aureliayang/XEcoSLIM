@@ -6,7 +6,6 @@ As the first step, we directly adopted
 Currently, we are training the DL model based on hillslope physical model and modifying the DL model to adapt water age simulations.  
 
 **Demonstration**  
-![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/results.png)  
 ![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/29.png) 
 
 **References**  
