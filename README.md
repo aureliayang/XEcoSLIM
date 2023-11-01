@@ -7,7 +7,7 @@ Currently, we are training the DL model based on hillslope physical model and mo
 
 ## Demonstration  
 **One year prediction of multi-point trajectories**  
-![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/29.png)  
+![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/31.png)  
 **Therefore, our work is easy to be applied to predict transport of plumes.** 
 
 ## References 
