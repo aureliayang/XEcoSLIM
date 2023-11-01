@@ -6,7 +6,8 @@ As the first step, we directly adopted
 Currently, we are training the DL model based on hillslope physical model and modifying the DL model to adapt water age simulations.  
 
 **Demonstration**  
-![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/29.png) 
+![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/29.png)  
+Therefore, our work is easy to be applied to predict transport of plumes. 
 
 **References**  
 [1] Han M., Sane S., Johnson C. (2022). Exploratory lagrangian-based particle tracing using deep learning. Journal of Flow Visualization & Image Processing, 29(3).  
