@@ -6,7 +6,7 @@ As the first step, we directly adopted
 Currently, we are training the DL model based on hillslope physical model and modifying the DL model to adapt water age simulations.  
 
 **Demonstration**  
-**One year prediction of multi-point trajectories**
+**One year prediction of multi-point trajectories**  
 ![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/29.png)  
 **Therefore, our work is easy to be applied to predict transport of plumes.** 
 
