@@ -7,6 +7,7 @@ Currently, we are training the DL model based on hillslope physical model and mo
 
 **Demonstration**  
 ![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/results.png)  
+![image](https://github.com/aureliayang/XEcoSLIM/blob/main/images/Figure 29.png) 
 
 **References**  
 [1] Han M., Sane S., Johnson C. (2022). Exploratory lagrangian-based particle tracing using deep learning. Journal of Flow Visualization & Image Processing, 29(3).  
